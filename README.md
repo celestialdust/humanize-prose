@@ -1,12 +1,42 @@
 # humanize-prose
 
-A Claude skill for revising academic and analytical prose so it reads as human-authored rather than AI-generated. It applies empirical lessons from iterating an actual essay through eight drafts against GPTZero, where the score moved from 75% AI to 21% AI and back up to 66% depending on what each rewrite did.
+A Claude skill for revising academic and analytical prose so it reads as human-authored rather than AI-generated. Built from empirical lessons across eight drafts of a real essay, where the GPTZero AI score moved 75% → 21% → 66% depending on what each rewrite did.
 
-The principles in the skill also work as plain good-prose principles. Evidence density, structural asymmetry, resistance to over-refinement. Humanizing and writing well converge.
+The principles also work as plain good-prose principles. Evidence density, structural asymmetry, resistance to over-refinement. Humanizing and writing well converge.
 
-## What the skill does
+## Install
 
-Academic prose gets flagged as AI-generated even when it is genuinely human-authored. The reason is register. AI detectors score text on perplexity (how predictable each next word is) and burstiness (how much sentence-to-sentence variation exists). Smooth, tidy, evenly-paced expository writing scores high on AI probability because its register matches LLM output. Writing that reads human is unevenly distributed. Specific where LLM writing is abstract. Clipped next to expansive. Carrying verifiable facts the model had to look up.
+### Claude.ai
+
+1. Download [`SKILL.md`](./SKILL.md) from this repo
+2. In Claude.ai, open **Settings → Skills** and upload the file
+3. Claude will automatically apply it when you ask to humanize prose or lower an AI-detection score
+
+### Claude Code
+
+```bash
+curl -L -o ~/.claude/skills/humanize-prose.md \
+  https://raw.githubusercontent.com/celestialdust/humanize-prose/main/SKILL.md
+```
+
+Restart Claude Code. The skill loads automatically.
+
+### Claude API
+
+Upload via the [Skills API](https://docs.claude.com/en/api/skills-guide):
+
+```python
+import anthropic
+
+client = anthropic.Anthropic()
+with open("SKILL.md", "rb") as f:
+    skill = client.beta.files.upload(("SKILL.md", f, "text/plain"))
+# pass skill.id in your Messages request
+```
+
+## What it does
+
+Academic prose gets flagged as AI-generated even when it is genuinely human-authored. The reason is register. AI detectors score text on perplexity (how predictable each next word is) and burstiness (how much sentence-to-sentence variation exists). Smooth, tidy, evenly-paced expository writing scores high on AI probability because its register matches LLM output.
 
 The skill walks Claude through a six-step revision workflow:
 
@@ -19,7 +49,7 @@ The skill walks Claude through a six-step revision workflow:
 
 ## Empirical basis
 
-Every principle in `SKILL.md` has at least one draft-to-draft comparison behind it. The full trajectory lives in `references/trajectory.md`:
+Every principle in `SKILL.md` has at least one draft-to-draft comparison behind it. The full trajectory is in [`references/trajectory.md`](./references/trajectory.md):
 
 | Draft | Body words | GPTZero AI % | What changed |
 |---|---|---|---|
@@ -30,37 +60,17 @@ Every principle in `SKILL.md` has at least one draft-to-draft comparison behind 
 | v7 | 1,442 | 56% | Surgical refinements to yellow paragraphs |
 | v8 | 1,456 | 66% | v6 + one evidentiary addition |
 
-The one successful move (v5 → v6) dropped the score 47 points by cutting abstract filler and adding specifics. The two refinement moves after that (v6 → v7, v6 → v8) regressed the score 35 and 45 points respectively, despite feeling like improvements. The meta-lesson is in the trajectory itself: know when to stop.
-
-## Installation
-
-### As a Claude Code / Cowork skill
-
-Drop the folder into your skills directory, or install the packaged bundle:
-
-```bash
-# Folder install — put this repo inside your skills dir
-~/.claude/skills/humanize-prose/
-
-# Or install the packaged .skill bundle
-cp humanize-prose.skill ~/Downloads/
-# Then open it from Claude Code or Cowork's skill installer
-```
-
-### As a reference
-
-The skill is readable as plain markdown. Open `SKILL.md` and `references/trajectory.md` directly.
+The one successful move (v5 → v6) dropped the score 47 points by cutting abstract filler and adding specifics. The two refinement moves that followed regressed the score 35 and 45 points despite feeling like improvements. Know when to stop.
 
 ## Contents
 
 ```
 humanize-prose/
-├── SKILL.md                      # The skill itself — workflow + red-flag scan
+├── SKILL.md                      # The skill — workflow + red-flag scan
 ├── references/
 │   └── trajectory.md             # Eight-draft empirical record
-├── scripts/
-│   └── ai_tell_scan.py           # Programmatic red-flag check
-└── humanize-prose.skill          # Packaged bundle for easy install
+└── scripts/
+    └── ai_tell_scan.py           # Programmatic red-flag check
 ```
 
 ## Using the scanner standalone
@@ -71,14 +81,18 @@ The scan script works on any markdown or plain-text draft:
 python3 scripts/ai_tell_scan.py your_draft.md
 ```
 
-It reports em-dash/semicolon counts, AI-tell phrase hits, weak analytic verbs, causal sentence-fusion ("X, because Y"), neat tricolons, paragraph balance, and sentence-length distribution. It catches real regressions: on the reference trajectory, the script correctly detected the v6 → v7 regression as an increase in "because" fusion count (1 → 2) and a drop in short-sentence share (25% → 21%).
+It reports em-dash/semicolon counts, AI-tell phrase hits, weak analytic verbs, causal sentence-fusion ("X, because Y"), neat tricolons, paragraph balance, and sentence-length distribution.
 
-## What the skill does not claim
+## Scope
 
-- It does not teach a user to pass off AI-generated writing as human. The principles work only when the content and argument are the user's own. Evidence density requires the writer to actually know the sources. Asymmetric prose requires genuine thinking. An AI-generated draft of an unresearched topic will still read AI because it lacks retrievable specifics.
-- It does not guarantee a specific score on any detector. Detectors are probabilistic and vary across runs.
-- It does not apply well to fiction, to short text under 300 words, or to heavy-jargon technical writing.
+- Does not teach users to pass off AI-generated writing as human. The principles only work when the content and argument are the writer's own — evidence density requires actually knowing the sources.
+- Does not guarantee a specific detector score. Detectors are probabilistic and vary across runs.
+- Does not apply well to fiction, text under 300 words, or heavy-jargon technical writing.
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [`LICENSE`](./LICENSE).
+
+## Provenance
+
+Built through an iterative collaboration between Joey Xue and Claude, distilled from a JPNS 162 essay trajectory in April 2026.

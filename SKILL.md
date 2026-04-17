@@ -1,6 +1,7 @@
 ---
 name: humanize-prose
 description: Revise academic, analytical, or essay prose so it reads as human-authored rather than AI-generated. Use this skill whenever a draft scores high on GPTZero, Turnitin AI, Originality.ai, Copyleaks, or any other AI-detection tool; whenever the user says "this reads too AI," "humanize this," "lower the AI score," "make this sound less AI," "rewrite in a human voice," or uploads an AI-detection report and asks for revision; and whenever the user wants to understand why clean academic prose trips AI detectors. Trigger this skill even if the user does not explicitly name it — if there is any AI-detection context or a writing task where human voice is the goal, prefer this skill over generic rewriting. Also applicable when composing original prose the user wants to read as human from the start.
+license: MIT
 ---
 
 # Humanize prose for AI detectors

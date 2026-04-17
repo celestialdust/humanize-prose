@@ -82,7 +82,3 @@ It reports em-dash/semicolon counts, AI-tell phrase hits, weak analytic verbs, c
 ## License
 
 MIT. See `LICENSE`.
-
-## Provenance
-
-Built through an iterative collaboration between Joey Xue and Claude, distilled from the JPNS 162 essay trajectory in April 2026.

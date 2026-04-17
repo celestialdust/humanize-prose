@@ -36,15 +36,17 @@ with open("SKILL.md", "rb") as f:
 
 ## What it does
 
-Academic prose gets flagged as AI-generated even when it is genuinely human-authored. The reason is register. AI detectors score text on perplexity (how predictable each next word is) and burstiness (how much sentence-to-sentence variation exists). Smooth, tidy, evenly-paced expository writing scores high on AI probability because its register matches LLM output.
+Academic prose gets flagged as AI-generated even when it is genuinely human-authored. The reason is register. By 2026, AI detectors (GPTZero, Turnitin AI, Originality.ai, Copyleaks, Winston AI) score text on three stacked signals: perplexity (how predictable each next word is), burstiness (how much sentence-to-sentence variation exists), and stylometry (the shape of the writing — how ideas flow, how punctuation is deployed, how transitions are managed). Smooth, tidy, evenly-paced expository writing scores high on AI probability because its register matches LLM output.
+
+The skill also surfaces a 2026 bias: non-native English speakers and technical/scientific writers are systematically over-flagged because their prose naturally reads low-perplexity. If that applies to you, the skill addresses it directly.
 
 The skill walks Claude through a six-step revision workflow:
 
 1. **Diagnose before editing.** Mark each paragraph as evidence-dense, analytical, or mixed. Leave the evidence-dense ones alone.
 2. **Cut, do not rephrase.** Removing words is the single strongest move.
 3. **Add evidence, not refinement.** A direct quote with page citation, a named scholar, a specific date.
-4. **Remove AI-tell patterns.** Em-dashes, semicolons, "furthermore"/"moreover"/"thus," cleft constructions, causal sentence-fusion, crisp metaphor verbs.
-5. **Asymmetrize.** Follow long sentences with short ones, add hedges next to flat assertions.
+4. **Remove AI-tell patterns.** Em-dashes, semicolons, "furthermore"/"moreover"/"thus," cleft constructions, causal sentence-fusion, crisp metaphor verbs. Includes a 2026 vocabulary-cluster table (abstract verbs like "delve"/"leverage," inflated adjectives like "pivotal"/"seamless," flowery metaphors like "tapestry"/"realm") — what flags is co-occurrence density, not individual words.
+5. **Introduce burstiness.** Follow long sentences with short ones, add hedges next to flat assertions, drop a rhetorical question, permit controlled inconsistency, vary paragraph length.
 6. **Verify, then stop.** Detector variance is ±10–20 points. If three rewrites land within 15 points of each other, ship the best.
 
 ## Empirical basis
@@ -85,13 +87,14 @@ The scan script works on any markdown or plain-text draft:
 python3 skills/humanize-prose/scripts/ai_tell_scan.py your_draft.md
 ```
 
-It reports em-dash/semicolon counts, AI-tell phrase hits, weak analytic verbs, causal sentence-fusion ("X, because Y"), neat tricolons, paragraph balance, and sentence-length distribution.
+It reports em-dash/semicolon counts, AI-tell phrase hits, weak analytic verbs, 2026 vocabulary-cluster density (abstract verbs / inflated adjectives / flowery metaphors per paragraph), causal sentence-fusion ("X, because Y"), neat tricolons, paragraph balance, and sentence-length distribution.
 
 ## Scope
 
 - Does not teach users to pass off AI-generated writing as human. The principles only work when the content and argument are the writer's own — evidence density requires actually knowing the sources.
 - Does not guarantee a specific detector score. Detectors are probabilistic and vary across runs.
 - Does not apply well to fiction, text under 300 words, or heavy-jargon technical writing.
+- Does not defeat cryptographic watermarks (Google SynthID) or provenance metadata (C2PA). Prose-level humanization addresses stylometric detection only — if the target pipeline uses a SynthID verifier or C2PA manifest, rewriting will not change the verdict.
 
 ## License
 

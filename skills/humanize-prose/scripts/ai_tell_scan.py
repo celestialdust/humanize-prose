@@ -23,6 +23,8 @@ import sys
 AI_TELL_PHRASES = [
     r"\bfurthermore\b",
     r"\bmoreover\b",
+    r"\badditionally\b",
+    r"\bnotably\b",
     r"\bthus\b",
     r"\bindeed\b",
     r"\bhence\b",
@@ -45,6 +47,54 @@ WEAK_ANALYTIC_VERBS = [
     r"\bserv(es|ed|ing) (as|to)\b",
     r"\bemphasi[sz](es|ed|ing)\b",
 ]
+
+# 2026 frontier-model vocabulary tells. Individually harmless; what flags
+# is co-occurrence density inside a single paragraph. See SKILL.md Step 4.
+AI_ABSTRACT_VERBS = [
+    r"\bdelv(e|es|ed|ing)\b",
+    r"\bleverag(e|es|ed|ing)\b",
+    r"\bunderscor(e|es|ed|ing)\b",
+    r"\bstreamlin(e|es|ed|ing)\b",
+    r"\bunleash(es|ed|ing)?\b",
+    r"\bfoster(s|ed|ing)?\b",
+    r"\bharness(es|ed|ing)?\b",
+    r"\bfacilitat(e|es|ed|ing)\b",
+]
+
+AI_INFLATED_ADJECTIVES = [
+    r"\bpivotal\b",
+    r"\brobust\b",
+    r"\bseamless(ly)?\b",
+    r"\binnovative\b",
+    r"\bcutting[-\s]edge\b",
+    r"\bmultifaceted\b",
+    r"\bcomprehensive\b",
+    r"\bholistic\b",
+    r"\bgroundbreaking\b",
+    r"\btransformative\b",
+]
+
+AI_FLOWERY_METAPHORS = [
+    r"\btapestry\b",
+    r"\blandscape\b",
+    r"\brealm\b",
+    r"\bsymphony\b",
+    r"\bbeacon\b",
+    r"\bjourney\b",
+    r"\becosystem\b",
+    r"\bfabric\b",
+]
+
+
+def _count_cluster_per_paragraph(paras, patterns):
+    """Return a list (one entry per paragraph) of total hits against the pattern list."""
+    counts = []
+    for p in paras:
+        n = 0
+        for pat in patterns:
+            n += len(re.findall(pat, p, flags=re.I))
+        counts.append(n)
+    return counts
 
 
 def wc(s: str) -> int:
@@ -78,7 +128,9 @@ def scan(text: str) -> dict:
             verb_hits[pattern] = len(hits)
 
     # Causal sentence-fusion pattern: detect ", because " when the left half is a full clause
-    because_fusions = re.findall(r"[.!?]\s+[^.!?]{20,}?,\s+because\s+", body, flags=re.I)
+    because_fusions = re.findall(
+        r"[.!?]\s+[^.!?]{20,}?,\s+because\s+", body, flags=re.I
+    )
 
     # Neat tricolons: three comma-separated gerund or adjective phrases ending with a coordinating "and"
     tricolon_candidates = re.findall(
@@ -100,6 +152,13 @@ def scan(text: str) -> dict:
         tokens = re.findall(r"\b[A-Z][a-zāēīōū]+(?:\s+[A-Z][a-zāēīōū]+){0,2}\b", p)
         proper_noun_counts.append(len(tokens))
 
+    # 2026 vocabulary-cluster density (per paragraph)
+    abstract_verbs_per_para = _count_cluster_per_paragraph(paras, AI_ABSTRACT_VERBS)
+    inflated_adj_per_para = _count_cluster_per_paragraph(paras, AI_INFLATED_ADJECTIVES)
+    flowery_metaphor_per_para = _count_cluster_per_paragraph(
+        paras, AI_FLOWERY_METAPHORS
+    )
+
     return {
         "paragraph_count": len(paras),
         "paragraph_word_counts": para_counts,
@@ -116,6 +175,9 @@ def scan(text: str) -> dict:
         "sentence_lengths": sent_lens,
         "direct_quotes": len(direct_quotes),
         "proper_nouns_per_paragraph": proper_noun_counts,
+        "abstract_verbs_per_paragraph": abstract_verbs_per_para,
+        "inflated_adjectives_per_paragraph": inflated_adj_per_para,
+        "flowery_metaphors_per_paragraph": flowery_metaphor_per_para,
     }
 
 
@@ -131,16 +193,22 @@ def format_report(result: dict) -> str:
     lines.append(f"Paragraph word counts: {pc}")
     if pc:
         ratio = max(pc) / max(1, min(pc))
-        lines.append(f"  Max-to-min paragraph ratio: {ratio:.2f}x "
-                     f"{'(flag: >2.5x is unbalanced)' if ratio > 2.5 else '(OK)'}")
+        lines.append(
+            f"  Max-to-min paragraph ratio: {ratio:.2f}x "
+            f"{'(flag: >2.5x is unbalanced)' if ratio > 2.5 else '(OK)'}"
+        )
 
     pn = result["proper_nouns_per_paragraph"]
     lines.append(f"\nProper nouns per paragraph: {pn}")
     zero_ev = [i + 1 for i, n in enumerate(pn) if n == 0]
     if zero_ev:
-        lines.append(f"  Paragraphs with zero proper nouns: {zero_ev} (consider adding evidence)")
+        lines.append(
+            f"  Paragraphs with zero proper nouns: {zero_ev} (consider adding evidence)"
+        )
 
-    lines.append(f"\nDirect quotations (>=15 chars in double quotes): {result['direct_quotes']}")
+    lines.append(
+        f"\nDirect quotations (>=15 chars in double quotes): {result['direct_quotes']}"
+    )
 
     lines.append("\nAI-TELL PUNCTUATION (target: all zero)")
     lines.append(f"  Em-dashes (—): {result['em_dash']}")
@@ -161,47 +229,102 @@ def format_report(result: dict) -> str:
     else:
         lines.append("  (none)")
 
-    lines.append(f"\nCausal sentence-fusion ('X, because Y'): {result['causal_because_fusions']}")
-    lines.append(f"Neat tricolons (three -ing or -ly phrases joined by 'and'): {result['neat_tricolons']}")
+    lines.append("\n2026 VOCABULARY CLUSTERS (per-paragraph density)")
+    lines.append(
+        "  Flag is co-occurrence: 2+ hits in a single paragraph is the signal."
+    )
+
+    def _summarize_cluster(label, per_para):
+        total = sum(per_para)
+        dense = [i + 1 for i, n in enumerate(per_para) if n >= 2]
+        line = f"  {label}: total={total}, per-paragraph={per_para}"
+        if dense:
+            line += f"  FLAG: paragraphs {dense} have >=2 hits"
+        lines.append(line)
+
+    _summarize_cluster(
+        "Abstract verbs (delve/leverage/unleash/etc.)",
+        result["abstract_verbs_per_paragraph"],
+    )
+    _summarize_cluster(
+        "Inflated adjectives (pivotal/robust/seamless/etc.)",
+        result["inflated_adjectives_per_paragraph"],
+    )
+    _summarize_cluster(
+        "Flowery metaphors (tapestry/landscape/realm/etc.)",
+        result["flowery_metaphors_per_paragraph"],
+    )
+
+    lines.append(
+        f"\nCausal sentence-fusion ('X, because Y'): {result['causal_because_fusions']}"
+    )
+    lines.append(
+        f"Neat tricolons (three -ing or -ly phrases joined by 'and'): {result['neat_tricolons']}"
+    )
     for ex in result["tricolon_examples"]:
         lines.append(f"    - {ex}")
 
     sl = result["sentence_lengths"]
     if sl:
         lines.append(f"\nSentence-length distribution ({len(sl)} sentences)")
-        lines.append(f"  min={min(sl)}  median={statistics.median(sl):.1f}  "
-                     f"max={max(sl)}  stdev={statistics.stdev(sl) if len(sl) > 1 else 0:.1f}")
+        lines.append(
+            f"  min={min(sl)}  median={statistics.median(sl):.1f}  "
+            f"max={max(sl)}  stdev={statistics.stdev(sl) if len(sl) > 1 else 0:.1f}"
+        )
         short = sum(1 for n in sl if n <= 12)
         medium = sum(1 for n in sl if 13 <= n <= 25)
         longs = sum(1 for n in sl if n > 25)
         total = max(1, len(sl))
-        lines.append(f"  short (<=12): {short} ({100*short/total:.0f}%)  "
-                     f"medium (13-25): {medium} ({100*medium/total:.0f}%)  "
-                     f"long (>25): {longs} ({100*longs/total:.0f}%)")
+        lines.append(
+            f"  short (<=12): {short} ({100 * short / total:.0f}%)  "
+            f"medium (13-25): {medium} ({100 * medium / total:.0f}%)  "
+            f"long (>25): {longs} ({100 * longs / total:.0f}%)"
+        )
         if short < max(3, total // 6):
-            lines.append("  FLAG: too few short sentences. Burstiness is low. "
-                         "Consider splitting a long sentence into a short + long pair.")
+            lines.append(
+                "  FLAG: too few short sentences. Burstiness is low. "
+                "Consider splitting a long sentence into a short + long pair."
+            )
 
     lines.append("\n" + "=" * 62)
     lines.append("READINESS SUMMARY")
     lines.append("=" * 62)
 
     flags = 0
-    if result["em_dash"] > 0: flags += 1
-    if result["semicolons"] > 0: flags += 1
-    if result["phrase_hits"]: flags += 1
-    if result["causal_because_fusions"] > 0: flags += 1
-    if result["neat_tricolons"] > 0: flags += 1
+    if result["em_dash"] > 0:
+        flags += 1
+    if result["semicolons"] > 0:
+        flags += 1
+    if result["phrase_hits"]:
+        flags += 1
+    if result["causal_because_fusions"] > 0:
+        flags += 1
+    if result["neat_tricolons"] > 0:
+        flags += 1
     pc = result["paragraph_word_counts"]
-    if pc and max(pc) / max(1, min(pc)) > 2.5: flags += 1
-    if any(n == 0 for n in result["proper_nouns_per_paragraph"]): flags += 1
+    if pc and max(pc) / max(1, min(pc)) > 2.5:
+        flags += 1
+    if any(n == 0 for n in result["proper_nouns_per_paragraph"]):
+        flags += 1
+    if any(n >= 2 for n in result["abstract_verbs_per_paragraph"]):
+        flags += 1
+    if any(n >= 2 for n in result["inflated_adjectives_per_paragraph"]):
+        flags += 1
+    if any(n >= 2 for n in result["flowery_metaphors_per_paragraph"]):
+        flags += 1
 
     if flags == 0:
-        lines.append("All programmatic checks passed. Draft is ready to submit to the detector.")
+        lines.append(
+            "All programmatic checks passed. Draft is ready to submit to the detector."
+        )
     else:
-        lines.append(f"{flags} flag category(ies) above. Address them before the next detector run.")
-        lines.append("Priority order: punctuation > AI-tell phrases > paragraph balance > "
-                     "evidence density > sentence-length distribution.")
+        lines.append(
+            f"{flags} flag category(ies) above. Address them before the next detector run."
+        )
+        lines.append(
+            "Priority order: punctuation > AI-tell phrases > paragraph balance > "
+            "vocabulary clusters > evidence density > sentence-length distribution."
+        )
 
     return "\n".join(lines)
 

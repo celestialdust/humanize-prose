@@ -8,7 +8,7 @@ The principles also work as plain good-prose principles. Evidence density, struc
 
 ### Claude.ai
 
-1. Download [`SKILL.md`](./SKILL.md) from this repo
+1. Download [`SKILL.md`](./skills/humanize-prose/SKILL.md) from this repo
 2. In Claude.ai, open **Settings → Skills** and upload the file
 3. Claude will automatically apply it when you ask to humanize prose or lower an AI-detection score
 
@@ -16,7 +16,7 @@ The principles also work as plain good-prose principles. Evidence density, struc
 
 ```bash
 curl -L -o ~/.claude/skills/humanize-prose.md \
-  https://raw.githubusercontent.com/celestialdust/humanize-prose/main/SKILL.md
+  https://raw.githubusercontent.com/celestialdust/humanize-prose/main/skills/humanize-prose/SKILL.md
 ```
 
 Restart Claude Code. The skill loads automatically.
@@ -49,7 +49,7 @@ The skill walks Claude through a six-step revision workflow:
 
 ## Empirical basis
 
-Every principle in `SKILL.md` has at least one draft-to-draft comparison behind it. The full trajectory is in [`references/trajectory.md`](./references/trajectory.md):
+Every principle in `SKILL.md` has at least one draft-to-draft comparison behind it. The full trajectory is in [`skills/humanize-prose/references/trajectory.md`](./skills/humanize-prose/references/trajectory.md):
 
 | Draft | Body words | GPTZero AI % | What changed |
 |---|---|---|---|
@@ -66,11 +66,15 @@ The one successful move (v5 → v6) dropped the score 47 points by cutting abstr
 
 ```
 humanize-prose/
-├── SKILL.md                      # The skill — workflow + red-flag scan
-├── references/
-│   └── trajectory.md             # Eight-draft empirical record
-└── scripts/
-    └── ai_tell_scan.py           # Programmatic red-flag check
+├── README.md
+├── LICENSE
+└── skills/
+    └── humanize-prose/
+        ├── SKILL.md                  # The skill — workflow + red-flag scan
+        ├── references/
+        │   └── trajectory.md         # Eight-draft empirical record
+        └── scripts/
+            └── ai_tell_scan.py       # Programmatic red-flag check
 ```
 
 ## Using the scanner standalone
@@ -78,7 +82,7 @@ humanize-prose/
 The scan script works on any markdown or plain-text draft:
 
 ```bash
-python3 scripts/ai_tell_scan.py your_draft.md
+python3 skills/humanize-prose/scripts/ai_tell_scan.py your_draft.md
 ```
 
 It reports em-dash/semicolon counts, AI-tell phrase hits, weak analytic verbs, causal sentence-fusion ("X, because Y"), neat tricolons, paragraph balance, and sentence-length distribution.
@@ -92,7 +96,3 @@ It reports em-dash/semicolon counts, AI-tell phrase hits, weak analytic verbs, c
 ## License
 
 MIT. See [`LICENSE`](./LICENSE).
-
-## Provenance
-
-Built through an iterative collaboration between Joey Xue and Claude, distilled from a JPNS 162 essay trajectory in April 2026.

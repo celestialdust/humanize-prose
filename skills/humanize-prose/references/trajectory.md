@@ -1,6 +1,6 @@
 # The empirical trajectory behind this skill
 
-This file documents the eight-draft iteration of a JPNS 162 academic essay ("From Godzilla to Girls und Panzer: How Japanese Popular Culture Keeps Containing Its Wartime Past") graded repeatedly against GPTZero. Every principle in SKILL.md has at least one specific draft-to-draft comparison behind it.
+This file documents the eight-draft iteration of an academic essay graded repeatedly against GPTZero. Every principle in SKILL.md has at least one specific draft-to-draft comparison behind it.
 
 ## Summary table
 
